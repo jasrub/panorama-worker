@@ -52,4 +52,5 @@ settings.config
 .idea/
 
 .DS_Store
-.idea/vcs.xml
+.idea/vcs.
+trends/stanford*

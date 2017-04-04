@@ -3,10 +3,9 @@ from datetime import datetime, timedelta
 import uuid
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime, Boolean, text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm.session import sessionmaker, Session
+from sqlalchemy.orm.session import Session
 
 Base = declarative_base()
 
@@ -70,27 +69,22 @@ class Trend_timestamp(Base):
     trend_id = Column('trend_id', None, ForeignKey('Trends.id'), index=True)
     created_at = Column('created_at', DateTime, default=datetime.now, index=True)
 
+class Label(Base):
+    __tablename__ = 'Labels'
+    id = Column('id', Integer, primary_key=True)
+    storyId = Column('storyId',None, ForeignKey('Stories.id'), index=True)
+    isSuperglue = Column('isMediaCloud', Boolean)
+    isMediaCloud = Column('isMediaCloud', Boolean)
+    posNeg = Column('posNeg', Float, index=True)
+    trend = Column('trend', Float, index=True)
+    objective = Column('objective', Float, index=True)
+    leftRight = Column('leftRight', Float, default=0, index=True)
+    isUsed = Column('isUsed', Boolean, default=False, index=True)
+    createdAt = Column('createdAt', DateTime, default=datetime.now)
+    updatedAt = Column('updatedAt', DateTime, onupdate=datetime.now, index=True)
+
 engine = create_engine(os.environ.get('DB_URL'))
 Base.metadata.create_all(engine)
 conn = engine.connect()
+sess = Session(bind=conn)
 
-def insert_trend(term):
-    insert_stmt = insert(Trend.__table__).values(
-        id=term, updated_at=datetime.now())
-    do_update_stmt = insert_stmt.on_conflict_do_update(
-        index_elements=['id'],
-        set_=dict(updated_at=datetime.now())
-    )
-    conn.execute(do_update_stmt)
-    conn.execute(insert(Trend_timestamp.__table__).values(trend_id=term))
-
-def is_story_in_db(story_id):
-    conn = engine.connect()
-    instance = conn.query(Story).filter_by(id=story_id).first()
-    return True if instance else False
-
-def get_all_trends(timeframe):
-    sess = Session(bind=conn)
-    last_updated = (datetime.now() - timedelta(days=timeframe))
-    qry = sess.query(Trend).filter(Trend.updated_at >= last_updated).order_by(Trend.updated_at.desc())
-    return [u.__dict__ for u in qry.all()]

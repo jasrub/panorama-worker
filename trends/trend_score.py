@@ -1,4 +1,4 @@
-import database_connection as db
+from database_connection import db
 from scipy.interpolate import interp1d
 
 days_m = interp1d([0, 7],[1, 0.2])

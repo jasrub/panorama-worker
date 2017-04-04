@@ -5,7 +5,13 @@ import requests
 import time
 from random import randint
 import tweepy
-import database_connection as db
+from database_connection import db
+
+from nltk.tag import StanfordNERTagger
+from collections import Counter
+
+st = StanfordNERTagger('english.all.3class.distsim.crf.ser.gz')
+add_trend_threshold = 5
 
 def get_google_topics(url):
     trending_topics = []
@@ -44,3 +50,22 @@ def update_trends_list():
     new_trends = [t.lower() for t in get_new_trends()][::-1]
     for t in new_trends:
        db.insert_trend(t)
+
+def retrain(labels):
+    new_trends = []
+    for label in labels:
+        if label['trend']>0.2:
+            tags = st.tag(label['story']['story_text'].lower().split())
+            tags_clean = [t for t in tags if t[1] in ['PERSON', 'ORGANIZATION', 'LOCATION']]
+            new_trends.extend(tags_clean)
+    # count how many appearances of each unique tag
+    counts = Counter(new_trends)
+    for term in counts.keys():
+        if counts(term)>add_trend_threshold:
+            db.insert_trend(term)
+    print "new trends from labels: "
+    print counts
+
+
+
+

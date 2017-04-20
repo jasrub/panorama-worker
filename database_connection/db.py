@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 
 def insert_trend(term):
+    print term
     insert_stmt = insert(Trend.__table__).values(
         id=term, updated_at=datetime.now())
     do_update_stmt = insert_stmt.on_conflict_do_update(
@@ -22,10 +23,14 @@ def get_all_trends(timeframe):
     return [u.__dict__ for u in qry.all()]
 
 def insert_stories(arr):
-    conn.execute(Story.__table__.insert(), arr)
+    sess.bulk_insert_mappings(Story,arr)
+    sess.commit()
+    #return conn.execute(Story.__table__.insert(), arr)
 
 def insert_descriptors(arr):
-    conn.execute(Descriptor_result.__table__.insert(), arr)
+    sess.bulk_insert_mappings(Descriptor_result, arr)
+    sess.commit()
+    #return conn.execute(Descriptor_result.__table__.insert(), arr)
 
 def recalculate_connections():
     # delete all rows in connections table
@@ -49,5 +54,8 @@ def get_new_labels():
     return [u.__dict__ for u in qry.all()]
 
 def label_used(label_id):
-    stmt = Label.__table__.update().where(Label.id==label_id).values(isUsed=True)
-    conn.execute(stmt)
+    label = sess.query(Label).filter_by(id=label_id).first()
+    label.isUsed =True
+    sess.commit()
+
+

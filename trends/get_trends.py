@@ -10,8 +10,8 @@ from database_connection import db
 from nltk.tag import StanfordNERTagger
 from collections import Counter
 
-st = StanfordNERTagger('english.all.3class.distsim.crf.ser.gz')
-add_trend_threshold = 5
+st = StanfordNERTagger('./trends/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz', './trends/stanford-ner/stanford-ner.jar')
+add_trend_threshold = 2
 
 def get_google_topics(url):
     trending_topics = []
@@ -54,14 +54,14 @@ def update_trends_list():
 def retrain(labels):
     new_trends = []
     for label in labels:
-        if label['trend']>0.2:
+        if label['trend']<-0.2:
             tags = st.tag(label['story']['story_text'].lower().split())
             tags_clean = [t for t in tags if t[1] in ['PERSON', 'ORGANIZATION', 'LOCATION']]
             new_trends.extend(tags_clean)
     # count how many appearances of each unique tag
     counts = Counter(new_trends)
     for term in counts.keys():
-        if counts(term)>add_trend_threshold:
+        if counts[term]>=add_trend_threshold:
             db.insert_trend(term)
     print "new trends from labels: "
     print counts

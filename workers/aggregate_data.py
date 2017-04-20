@@ -7,13 +7,16 @@ from trends import trend_score
 from sentiment import sentiment_predict
 from subjective import subjective_predict
 
+from Base.vectorize import vectorize
+
 from Base.utils import millis_since, mc, sg, segment_to_story
-from database_connection.db import is_story_in_db, insert_stories, insert_descriptors
+import database_connection
+from database_connection.db import is_story_in_db, insert_stories, insert_descriptors, recalculate_connections
 
 def get_media_cloud_stories():
     all_stories = []
 
-    timeframe = 5
+    timeframe = 1
     end = datetime.now()
     start = (end - timedelta(days=timeframe))
     story_count = mc.storyCount('*',['tags_id_media: (8875027)','(language:en)', mc.publish_date_query(start,end)])['count']
@@ -21,19 +24,17 @@ def get_media_cloud_stories():
 
     max_id = 0
     num_rows = 1000
-    while story_count>0 and len(all_stories)<10:#story_count:
+    while story_count>0 and len(all_stories)<story_count:
         # get a page
         stories = mc.storyList('*',['tags_id_media: (8875027)','(language:en)', mc.publish_date_query(start,end)],
-                               last_processed_stories_id=max_id,text=True)
+                               last_processed_stories_id=max_id,text=True, rows=num_rows)
         max_id = stories[-1]["processed_stories_id"]#find max processed_stories_id on page
         all_stories += stories
-        if len(all_stories)%1000==0:
-            print len(all_stories)
 
     all_stories_clean = [story for story in all_stories if not is_story_in_db(story['stories_id'])]
-    for story in enumerate(all_stories_clean):
-        story['is_media_cloud'] = True
-        story['is_super_glue'] = False
+    for story in all_stories_clean:
+        story['isMediaCloud'] = True
+        story['isSuperglue'] = False
         story['publish_date'] = datetime.strptime(story['publish_date'], '%Y-%m-%d %H:%M:%S')
         story['image'] = ''
         try:
@@ -48,13 +49,13 @@ def get_media_cloud_stories():
 def get_superglue_stories():
     # get superglue data
     all_media_has_descriptors = sg.find(
-        {"date_added": {"$gt": millis_since('3')}, "descriptors": {"$exists": True}})
+        {"date_added": {"$gt": millis_since('1')}, "descriptors": {"$exists": True}})
     print "found %d videos" % all_media_has_descriptors.count()
     all_videos = []
     for doc in all_media_has_descriptors:
         for i, seg in enumerate(doc["story_segments"]):
             if len(seg["text"]) > 30:
-                vid =segment_to_story(doc, seg)
+                vid =segment_to_story(doc, seg, i)
                 all_videos.append(vid)
     videos_clean = [vid for vid in all_videos if not is_story_in_db(vid['stories_id'])]
     print "got %d new videos"%len(videos_clean)
@@ -64,11 +65,15 @@ def get_superglue_stories():
 def annotate_stories(all_stories):
     for story in all_stories:
         if 'descriptors' not in story:
-            story['descriptors'] = nyt_labeler.get_labels(story['story_text'])
+            if story['story_text']:
+                story['descriptors'] = nyt_labeler.get_labels(story['story_text'])
+            else:
+                story['descriptors'] = []
+        story_vector = vectorize(story['story_text'])
         story['leftRight'] = label_left_right.score(str(story['media_id']))
         story['trend'] = trend_score.score(story['story_text'], story['publish_date'])
-        story['posNeg'] = sentiment_predict.calssify_text(story['story_text'])
-        story['objective'] = subjective_predict.calssify_text(story['story_text'])
+        story['posNeg'] = sentiment_predict.classify_text(story_vector)
+        story['objective'] = subjective_predict.classify_text(story_vector)
     return all_stories
 
 def push_to_db(all_stories):
@@ -81,11 +86,12 @@ def push_to_db(all_stories):
          'publishDate': s['publish_date'],
          'mediaName': s['media_name'],
          'mediaUrl': s['media_url'],
-         'isMediaCloud':True,
-         'isSuperglue': False,
-         'leftRight': s['left_right_score'],
-         'posNeg': s['posNeg'] if 'posNeg' in s else 0,
-         'objective': s['objective'] if 'objective' in s else 0,
+         'isMediaCloud':s['isMediaCloud'],
+         'isSuperglue': s['isSuperglue'],
+         'leftRight': s['leftRight'],
+         'posNeg': s['posNeg'],
+         'trend': s['trend'],
+         'objective': s['objective'],
          'image':s['image'],
          'collectDate': s['collect_date']} for s in all_stories]
     insert_stories(insert_arr)
@@ -97,9 +103,21 @@ def push_to_db(all_stories):
          'score': d['score']} for s in all_stories for d in s["descriptors"]]
     insert_descriptors(descriptors)
 
-def run_pipeline():
+def run():
     stories = get_media_cloud_stories()
     videos = get_superglue_stories()
     all_stories = stories+videos
-    annotate_stories(all_stories)
-    push_to_db(all_stories)
+    print "got %d stories"%(len(all_stories))
+
+    batch_size = 300
+    chunks = [all_stories[i:i + batch_size] for i in xrange(0, len(all_stories), batch_size)]
+    for i,chunk in enumerate(chunks):
+        annotate_stories(chunk)
+        push_to_db(chunk)
+        print "%d stories uploaded to db"%(i*batch_size)
+    print "recalculating connections"
+    recalculate_connections()
+    print "finished data aggregation"
+
+if __name__ == "__main__":
+    run()

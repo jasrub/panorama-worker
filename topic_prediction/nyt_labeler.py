@@ -7,14 +7,15 @@ log = logging.getLogger(__name__)
 
 host = settings.get('labeller', 'host')
 
-THRESHOLD = 0.1
+THRESHOLD = 0.2
 def _get_url():
     return host+'/predict.json'
 
 
 def get_labels(story_text):
     result = _query({'text': story_text})
-    return filter_list(result['descriptors600'])
+    filtered_result = filter_list(result['descriptors600'])
+    return filtered_result
 
 
 def _query(data):
@@ -22,9 +23,9 @@ def _query(data):
         r = requests.post(_get_url(), json=data)
         # log.debug('labeller says %r', r.content)
         return r.json()
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         log.exception(e)
     return None
 
 def filter_list(terms):
-    return [{"term": x['label'], "score": x['score']} for x in terms if x['score']>THRESHOLD]
+    return [{"term": x['label'], "score": float(x['score'])} for x in terms if float(x['score'])>THRESHOLD]

@@ -1,12 +1,11 @@
 import json
+from Base.utils import media_sources
 
 media_cloud_left_right_tags = {}
-media_sources = {}
+
 with open('./left_right/media_cloud_left_right_tags.json', 'r') as infile:
     media_cloud_left_right_tags = json.load(infile)
 
-with open('./left_right/media_sources.json', 'r') as infile:
-    media_sources = json.load(infile)
 
 tags_1959 = media_cloud_left_right_tags['tags_1959']
 tags_1960 = media_cloud_left_right_tags['tags_1960']

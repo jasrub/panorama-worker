@@ -22,7 +22,7 @@ mc = mediacloud.api.AdminMediaCloud(MEDIA_CLOUD_KEY)
 
 SUPERGLUE_MONGO_URL = os.environ.get('SUPERGLUE_MONGO_URL')
 client = MongoClient(SUPERGLUE_MONGO_URL)
-superglue_db = client.get_default_database()
+superglue_db = client['super-glue']
 sg = superglue_db['media']
 
 with open('./Base/media_sources.json', 'r') as infile:

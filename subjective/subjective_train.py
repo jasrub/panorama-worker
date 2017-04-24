@@ -17,6 +17,6 @@ def retrain(labels):
     for label in labels:
         category = '%.1f'%label['objective']
         X.append(vectorize(label['story']['story_text']))
-        y.appen(category)
+        y.append(category)
     classifier.partial_fit(X, y, classes=classes)
     save_classifier()

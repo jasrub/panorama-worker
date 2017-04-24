@@ -56,4 +56,4 @@ settings.config
 trends/stanford*
 
 sentiment/SAR14.txt
-word2vec_model/*
+word2vec_model/GoogleNews-vectors-negative300.bin

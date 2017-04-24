@@ -19,3 +19,4 @@ six==1.10.0
 sklearn==0.0
 SQLAlchemy==1.1.8
 tweepy==3.5.0
+gensim==1.0.1

@@ -105,7 +105,7 @@ def push_to_db(all_stories):
 
 def run():
     stories = get_media_cloud_stories()
-    videos = get_superglue_stories()
+    videos = [] #get_superglue_stories() #commenting out for user testing!!
     all_stories = stories+videos
     print "got %d stories"%(len(all_stories))
 

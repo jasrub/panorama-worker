@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 
 def insert_trend(term):
+    term = term.encode('utf-8')
     print term
     insert_stmt = insert(Trend.__table__).values(
         id=term, updated_at=datetime.now())

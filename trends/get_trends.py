@@ -62,7 +62,7 @@ def retrain(labels):
     counts = Counter(new_trends)
     for term in counts.keys():
         if counts[term]>=add_trend_threshold:
-            db.insert_trend(term)
+            db.insert_trend(term[0])
     print "new trends from labels: "
     print counts
 

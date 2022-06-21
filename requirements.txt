@@ -5,7 +5,7 @@ configparser==3.5.0
 logging==0.4.9.6
 mediacloud==2.39.1
 nltk==3.4.5
-numpy==1.12.1
+numpy==1.22.0
 oauthlib==2.0.2
 packaging==16.8
 psycopg2==2.7.1

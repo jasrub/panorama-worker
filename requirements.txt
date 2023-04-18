@@ -4,7 +4,7 @@ bs4==0.0.1
 configparser==3.5.0
 logging==0.4.9.6
 mediacloud==2.39.1
-nltk==3.4.5
+nltk==3.6.6
 numpy==1.12.1
 oauthlib==2.0.2
 packaging==16.8
